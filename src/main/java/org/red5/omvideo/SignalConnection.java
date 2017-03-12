@@ -1,10 +1,16 @@
 package org.red5.omvideo;
 
+import com.coremedia.iso.IsoTypeReader;
+import com.coremedia.iso.boxes.Container;
+import com.googlecode.mp4parser.authoring.Movie;
+import com.googlecode.mp4parser.authoring.builder.FragmentedMp4Builder;
+import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.red5.logging.Red5LoggerFactory;
 import org.slf4j.Logger;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 import javax.websocket.OnClose;
@@ -14,11 +20,8 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
-import org.mp4parser.tools.IsoTypeReader;
-
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
@@ -79,8 +82,14 @@ public class SignalConnection {
 	
     @OnOpen
     public void onOpen(Session session) throws IOException {
-    	FileInputStream fis = new FileInputStream(new File(VIDEO_FILE_PATH));
-    	print(fis.getChannel(), 0, 0, 0);
+        Movie movie = MovieCreator.build(VIDEO_FILE_PATH);
+
+        FileChannel fc = new FileOutputStream(new File("/home/dmitry/code/om-video/new_small.mp4")).getChannel();
+        Container mp4File = new FragmentedMp4Builder().build(movie);
+
+        mp4File.writeContainer(fc);
+
+        fc.close();
 
         LOG.info("User connected");
     }
