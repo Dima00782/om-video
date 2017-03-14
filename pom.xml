@@ -230,11 +230,6 @@
         </dependency>
         <dependency>
             <groupId>org.mp4parser</groupId>
-            <artifactId>isoparser</artifactId>
-            <version>${mp4parser.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mp4parser</groupId>
             <artifactId>muxer</artifactId>
             <version>${mp4parser.version}</version>
         </dependency>
