@@ -1,39 +1,56 @@
-const connection = new WebSocket('ws://localhost:5080/omvideo/ws');
+const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
 const videoTag = document.querySelector("#video-tag");
-const mimeCodec = 'video/mp4; codecs="avc1.64001E, mp4a.40.2"';
-
 let mediaSource = null;
 let sourceBuffer = null;
 
 function getMediaSource() {
-	let mediaSource = null;
-	if ('MediaSource' in window && MediaSource.isTypeSupported(mimeCodec)) {
-		mediaSource = new MediaSource;
-        videoTag.src = URL.createObjectURL(mediaSource);
-        mediaSource.addEventListener('sourceopen', () => {
-        	sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
-        });
-    } else {
-    	console.error('Unsupported MIME type or codec: ', mimeCodec);
-    }
-
-    return mediaSource;
+  if ('MediaSource' in window && MediaSource.isTypeSupported(mimeCodec)) {
+    mediaSource = new MediaSource;
+    videoTag.src = URL.createObjectURL(mediaSource);
+    mediaSource.addEventListener('sourceopen', () => {
+      sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+      videoTag.addEventListener('canplay', function () {
+        videoTag.play();
+      });
+    });
+  } else {
+    console.error('Unsupported MIME type or codec: ', mimeCodec);
+  }
+  return mediaSource;
 }
 
-function startVideo() {
-	mediaSource = getMediaSource();
-	videoTag.play();
-}
+mediaSource = getMediaSource();
+const connection = new WebSocket('ws://localhost:5080/omvideo/ws');
+connection.binaryType = "arraybuffer";
+
 
 connection.onopen = function () {
   console.log("Connected");
-  startVideo();
 }
 
+let buffer = [];
+
+function getTotalLength(array) {
+  let size = array.reduce((acc, curr) => acc + curr.byteLength, 0);
+  return size;
+}
+
+function concatArrBuf(buffer1, buffer2) {
+  var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+  tmp.set(new Uint8Array(buffer1), 0);
+  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
+  return tmp.buffer;
+};
+
 connection.onmessage = function (message) {
-  console.log("Got message", message.data);
-  sourceBuffer.appendBuffer(new Uint8Array(message));
-  videoTag.play();
+  if (getTotalLength(buffer) >= 300000) {
+    let bigBuffer = buffer.reduce((acc, curr) => concatArrBuf(acc, curr), new ArrayBuffer());
+    sourceBuffer.appendBuffer(bigBuffer);
+    buffer = [];
+    videoTag.play();
+    console.log("YEPPP");
+  }
+  buffer.push(message.data);
 };
 
 connection.onerror = function (err) {

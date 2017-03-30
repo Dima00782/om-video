@@ -58,13 +58,10 @@ public class SignalConnection {
 
             @Override
             public int write(ByteBuffer src) throws IOException {
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
                 int size = src.remaining();
-                session.getBasicRemote().sendBinary(src);
+                byte[] arr = new byte[src.remaining()];
+                src.get(arr);
+                session.getBasicRemote().sendBinary(ByteBuffer.wrap(arr));
                 return size;
             }
         });
