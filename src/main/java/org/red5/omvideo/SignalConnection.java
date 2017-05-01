@@ -46,6 +46,11 @@ public class SignalConnection {
         );
         List<StreamingTrack> streamingTracks = classicMp4ContainerSource.getTracks();
         FragmentedMp4Writer writer = new FragmentedMp4Writer(streamingTracks, new WritableByteChannel() {
+
+            private byte[] buffer = new byte[0];
+
+            private final int BUFFER_SIZE = 1024 * 1024;
+
             @Override
             public boolean isOpen() {
                return session.isOpen();
@@ -53,15 +58,32 @@ public class SignalConnection {
 
             @Override
             public void close() throws IOException {
+                if (buffer.length != 0) {
+                    session.getBasicRemote().sendBinary(ByteBuffer.wrap(buffer));
+                }
                 session.close();
+            }
+
+            public byte[] concatTwoArrays(byte[] a, byte[] b) {
+                byte[] c = new byte[a.length + b.length];
+                System.arraycopy(a, 0, c, 0, a.length);
+                System.arraycopy(b, 0, c, a.length, b.length);
+
+                return c;
             }
 
             @Override
             public int write(ByteBuffer src) throws IOException {
                 int size = src.remaining();
-                byte[] arr = new byte[src.remaining()];
-                src.get(arr);
-                session.getBasicRemote().sendBinary(ByteBuffer.wrap(arr));
+                byte[] curr = new byte[src.remaining()];
+                src.get(curr);
+
+                buffer = concatTwoArrays(buffer, curr);
+                if (buffer.length >= BUFFER_SIZE) {
+                    session.getBasicRemote().sendBinary(ByteBuffer.wrap(buffer));
+                    buffer = new byte[0];
+                }
+
                 return size;
             }
         });

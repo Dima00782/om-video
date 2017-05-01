@@ -28,29 +28,10 @@ connection.onopen = function () {
   console.log("Connected");
 }
 
-let buffer = [];
-
-function getTotalLength(array) {
-  let size = array.reduce((acc, curr) => acc + curr.byteLength, 0);
-  return size;
-}
-
-function concatArrBuf(buffer1, buffer2) {
-  var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-  tmp.set(new Uint8Array(buffer1), 0);
-  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-  return tmp.buffer;
-};
-
 connection.onmessage = function (message) {
-  if (getTotalLength(buffer) >= 300000) {
-    let bigBuffer = buffer.reduce((acc, curr) => concatArrBuf(acc, curr), new ArrayBuffer());
-    sourceBuffer.appendBuffer(bigBuffer);
-    buffer = [];
-    videoTag.play();
-    console.log("YEPPP");
-  }
-  buffer.push(message.data);
+  console.log(message.data);
+  sourceBuffer.appendBuffer(message.data);
+  videoTag.play();
 };
 
 connection.onerror = function (err) {
